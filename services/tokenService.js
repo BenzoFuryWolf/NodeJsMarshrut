@@ -2,10 +2,17 @@ const jwt = require("jsonwebtoken")
 const tokenModels = require("../models/tokensModels")
 const dotenv = require("dotenv")
 class TokenService{
-    createTokens(id,payload){
+    refreshTokens(payload){
+        const refreshTime = "30d";
+        return jwt.sign({id: payload.id, email:payload.email}, process.env.JWT_REFRESH_SECRET, {expiresIn: refreshTime})
+    }
+    accessToken(payload){
         const accessTime = "1h";
-        let accessToken = jwt.sign({id: id, payload:payload}, process.env.JWT_ACCESS_SECRET, {expiresIn: accessTime})
-        let refreshToken = jwt.sign({id: id, payload:payload}, process.env.JWT_REFRESH_SECRET, {expiresIn: "30d"})
+        return jwt.sign({id: payload.id, email:payload.email}, process.env.JWT_ACCESS_SECRET, {expiresIn: accessTime})
+    }
+    createTokens(payload){
+        let accessToken = this.accessToken(payload)
+        let refreshToken = this.refreshTokens(payload)
         function userFabric(id, token){
             return {
                 id: id,
@@ -16,8 +23,8 @@ class TokenService{
             console.log(userFabric(id, refreshToken))// Выводит объект в консоль для проверки ошибок в сервере
             tokenModels.push(userFabric(id, refreshToken));
         }
-        addTokens(id, refreshToken)
-        return accessToken
+        addTokens(payload.id, refreshToken)
+        return {access_token:accessToken,refresh_token:refreshToken}
     }
 }
 

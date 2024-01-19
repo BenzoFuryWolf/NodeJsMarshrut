@@ -50,9 +50,9 @@ class UserService{
         let a = this.myUsers.find(el => el.email ===  email)
         let passHash = HashPassword.prototype.genPassHash(password, a.salt)
         if(passHash === a.password_hash){
-            let acc_tok = tokenService.createTokens(a.id, email)
+            let acc_tok = tokenService.createTokens(a.id, a.email)
             return {
-                access_token:acc_tok,
+                tokens:acc_tok,
                 msg: "Авторизация прошла успешно"
             }
         }else {

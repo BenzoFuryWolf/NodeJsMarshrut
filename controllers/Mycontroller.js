@@ -18,6 +18,7 @@ class UserController{
         let myUser = req.body
         try {
             let us = await UserService.auth(myUser.email, myUser.password)
+            res.cookie('refresh_token', us.tokens.refreshtoken, {maxAge: 30*24*60*60*1000, httpOnly: true})
             return res.json(us)
         }catch (e) {
             console.log(e)
