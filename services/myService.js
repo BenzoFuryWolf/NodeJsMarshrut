@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt")
 
-myUsers = require("../models/UserModels")
+const myUsers = require("../models/UserModels")
 const tokenService = require("./tokenService")
 class HashPassword{
     genPasswordHash (password){ //Для регистрации
@@ -22,7 +22,7 @@ class HashPassword{
     }
 }
 
-class UserService{
+class UserService1{
     myUsers = require("../models/UserModels")
     async reg (email, password){
         let genId = () => {//Возвращает id для нового пользователя
@@ -47,21 +47,22 @@ class UserService{
     }
 
     async auth (email, password){
-        let a = this.myUsers.find(el => el.email ===  email)
-        let passHash = HashPassword.prototype.genPassHash(password, a.salt)
-        if(passHash === a.password_hash){
-            let acc_tok = tokenService.createTokens(a.id, a.email)
-            return {
-                tokens:acc_tok,
-                msg: "Авторизация прошла успешно"
-            }
-        }else {
-            return {
-                msg:"Пароль или почта не верна"
+        let a =await myUsers.User.findOne({where: {email: email}})
+        let passHash = HashPassword.prototype.genPassHash(password, a.dataValues.salt)
+        if(a != null){
+            if(passHash === a.password_hash){
+                let acc_tok = tokenService.createTokens(a.id, a.email)
+                return {
+                    tokens:acc_tok,
+                    msg: "Авторизация прошла успешно"
+                }
+            }else {
+                return {
+                    msg:"Пароль или почта не верна"
+                }
             }
         }
-
     }
 }
 
-module.exports = new UserService();
+module.exports = new UserService1();

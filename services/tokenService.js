@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken")
-const tokenModels = require("../models/tokensModels")
+const db = require("../db")
+const {Tokens} = require("../models/UserModels")
 const dotenv = require("dotenv")
+const {query} = require("express");
 class TokenService{
     refreshTokens(payload){
         const refreshTime = "30d";
@@ -10,21 +12,42 @@ class TokenService{
         const accessTime = "1h";
         return jwt.sign({id: payload.id, email:payload.email}, process.env.JWT_ACCESS_SECRET, {expiresIn: accessTime})
     }
-    createTokens(payload){
-        let accessToken = this.accessToken(payload)
-        let refreshToken = this.refreshTokens(payload)
-        function userFabric(id, token){
-            return {
-                id: id,
-                refreshToken: token,
-            }
+    async createTokens(payload){
+        let wasCreated = Tokens.findOne({where: {user_Id: payload.id}})
+        async function addTokens(id, refreshToken){
+            let myQuery = `INSERT INTO tokens (refresh_token, "user_Id")VALUES ('${refreshToken}',${id})`
+            let token = await db.query(myQuery)
+            console.log(token)// Выводит объект в консоль для проверки ошибок в сервере
         }
-        function addTokens(id, refreshToken){
-            console.log(userFabric(id, refreshToken))// Выводит объект в консоль для проверки ошибок в сервере
-            tokenModels.push(userFabric(id, refreshToken));
+        if(wasCreated == null){
+            let accessToken = this.accessToken(payload)
+            let refreshToken = this.refreshTokens(payload)
+
+            await addTokens(payload.id, refreshToken)
+            return {access_token:accessToken,refresh_token:refreshToken}
+        }else{
+            let accessToken = this.accessToken(payload)//Перезапись токена
+            let refreshToken = this.refreshTokens(payload)
+            wasCreated.refresh_token = refreshToken
+            return {access_token:accessToken,refresh_token:refreshToken}
         }
-        addTokens(payload.id, refreshToken)
-        return {access_token:accessToken,refresh_token:refreshToken}
+
+    }
+    validateAccessToken(token){
+        try{
+            const userData = jwt.verify(token, process.env.JWT_ACCESS_SECRET)
+            return userData
+        }catch (e) {
+            return null
+        }
+    }
+    validateRefreshToken(token){
+        try{
+            const userData = jwt.verify(token, process.env.JWT_REFRESH_SECRET)
+            return userData
+        }catch (e) {
+            return null
+        }
     }
 }
 
